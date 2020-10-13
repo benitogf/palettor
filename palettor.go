@@ -11,10 +11,16 @@ import (
 // "standard" k-means clustering algorithm. It returns a Palette, after running
 // the algorithm up to maxIterations times.
 func Extract(k, maxIterations int, img image.Image) (*Palette, error) {
-	return clusterColors(k, maxIterations, getColors(img))
+	return ClusterColors(k, maxIterations, GetColors(img))
 }
 
-func getColors(img image.Image) []color.Color {
+// ExtractByCentroids ...
+func ExtractByCentroids(threshold int, img image.Image, centroids map[string][]color.Color) (*PaletteCentroid, error) {
+	return clusterColorsByCentroids(threshold, GetColors(img), centroids)
+}
+
+// GetColors from an image
+func GetColors(img image.Image) []color.Color {
 	bounds := img.Bounds()
 	pixelCount := (bounds.Max.X - bounds.Min.X) * (bounds.Max.Y - bounds.Min.Y)
 	colors := make([]color.Color, pixelCount)

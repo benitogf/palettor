@@ -14,6 +14,13 @@ type Palette struct {
 	iterations   int
 }
 
+// PaletteCentroid ...
+type PaletteCentroid struct {
+	colorWeights map[string]float64
+	converged    bool
+	iterations   int
+}
+
 // Entry is a color and its weight in a Palette
 type Entry struct {
 	Color  color.Color `json:"color"`
@@ -41,6 +48,17 @@ func (p *Palette) Colors() []color.Color {
 	return colors
 }
 
+// Colors returns a slice of the colors that comprise a Palette.
+func (p *PaletteCentroid) Colors() []string {
+	var colors []string
+	for color := range p.colorWeights {
+		if color != "none" {
+			colors = append(colors, color)
+		}
+	}
+	return colors
+}
+
 // Converged returns a bool indicating whether a stable set of dominant
 // colors was found before the maximum number of iterations was reached.
 func (p *Palette) Converged() bool {
@@ -61,6 +79,12 @@ func (p *Palette) Iterations() int {
 // Weight returns the weight of a color in a Palette as a float in the range
 // [0, 1], or 0 if a given color is not found.
 func (p *Palette) Weight(c color.Color) float64 {
+	return p.colorWeights[c]
+}
+
+// Weight returns the weight of a color in a Palette as a float in the range
+// [0, 1], or 0 if a given color is not found.
+func (p *PaletteCentroid) Weight(c string) float64 {
 	return p.colorWeights[c]
 }
 

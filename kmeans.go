@@ -7,7 +7,25 @@ import (
 	"time"
 )
 
-// clusterColors finds k clusters in the given colors using the "standard"
+func clusterColorsByCentroids(threshold int, colors []color.Color, centroids map[string][]color.Color) (*PaletteCentroid, error) {
+	colorCount := len(colors)
+	var clusters map[string][]color.Color
+	centroids["none"] = []color.Color{}
+
+	clusters = assignmentStepByCentroid(centroids, colors, threshold)
+
+	clusterWeights := make(map[string]float64, len(centroids)-1)
+	for centroid, cluster := range clusters {
+		if centroid != "none" {
+			clusterWeights[centroid] = float64(len(cluster)-1) / (float64(colorCount) - float64(len(clusters["none"])))
+		}
+	}
+	return &PaletteCentroid{
+		colorWeights: clusterWeights,
+	}, nil
+}
+
+// ClusterColors finds k clusters in the given colors using the "standard"
 // k-means clustering algorithm. It returns a Palette, after running the
 // algorithm up to maxIterations times.
 //
@@ -16,7 +34,7 @@ import (
 // coordinates for the purposes of finding the distance between two colors.
 //
 // [1]: https://en.wikipedia.org/wiki/K-means_clustering#Standard_algorithm
-func clusterColors(k, maxIterations int, colors []color.Color) (*Palette, error) {
+func ClusterColors(k, maxIterations int, colors []color.Color) (*Palette, error) {
 	colorCount := len(colors)
 	if colorCount < k {
 		return nil, fmt.Errorf("too few colors for k (%d < %d)", colorCount, k)
@@ -84,6 +102,23 @@ func assignmentStep(centroids, colors []color.Color) map[color.Color][]color.Col
 	return clusters
 }
 
+// Assign each color to the cluster of the closest centroid.
+func assignmentStepByCentroid(centroids map[string][]color.Color, colors []color.Color, threshold int) map[string][]color.Color {
+	clusters := make(map[string][]color.Color)
+	for _, x := range colors {
+		nearBys := map[string]color.Color{}
+		for centroidIndex, centroid := range centroids {
+			if centroidIndex != "none" {
+				nearBys[centroidIndex] = nearest(x, centroid)
+			}
+		}
+
+		index := nearestIndex(x, nearBys, threshold)
+		clusters[index] = append(clusters[index], x)
+	}
+	return clusters
+}
+
 // Pick new centroids from each cluster. If none of the centroids change, the
 // clusters have stabilized and the algorithm has converged.
 func updateStep(clusters map[color.Color][]color.Color) (bool, []color.Color) {
@@ -138,6 +173,22 @@ func nearest(needle color.Color, haystack []color.Color) color.Color {
 			minDist = dist
 			result = candidate
 		}
+	}
+	return result
+}
+
+// Find the item in the haystack to which the needle is closest.
+func nearestIndex(needle color.Color, haystack map[string]color.Color, threshold int) string {
+	result := "none"
+	count := 0
+	minDist := threshold
+	for i, candidate := range haystack {
+		dist := distanceSquared(needle, candidate)
+		if dist < minDist {
+			minDist = dist
+			result = i
+		}
+		count++
 	}
 	return result
 }
