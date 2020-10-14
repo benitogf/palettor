@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-func clusterColorsByCentroids(threshold int, colors []color.Color, centroids map[string][]color.Color) (*PaletteCentroid, error) {
+func clusterColorsByCentroids(th int, colors []color.Color, centroids map[string][]color.Color) (*PaletteCentroid, error) {
 	colorCount := len(colors)
 	var clusters map[string][]color.Color
 	centroids["none"] = []color.Color{}
 
-	clusters = assignmentStepByCentroid(centroids, colors, threshold)
+	clusters = assignmentStepByCentroid(th, centroids, colors)
 
 	clusterWeights := make(map[string]float64, len(centroids)-1)
 	for centroid, cluster := range clusters {
@@ -103,7 +103,7 @@ func assignmentStep(centroids, colors []color.Color) map[color.Color][]color.Col
 }
 
 // Assign each color to the cluster of the closest centroid.
-func assignmentStepByCentroid(centroids map[string][]color.Color, colors []color.Color, threshold int) map[string][]color.Color {
+func assignmentStepByCentroid(th int, centroids map[string][]color.Color, colors []color.Color) map[string][]color.Color {
 	clusters := make(map[string][]color.Color)
 	for _, x := range colors {
 		nearBys := map[string]color.Color{}
@@ -113,7 +113,7 @@ func assignmentStepByCentroid(centroids map[string][]color.Color, colors []color
 			}
 		}
 
-		index := nearestIndex(x, nearBys, threshold)
+		index := nearestIndex(th, x, nearBys)
 		clusters[index] = append(clusters[index], x)
 	}
 	return clusters
@@ -168,6 +168,9 @@ func nearest(needle color.Color, haystack []color.Color) color.Color {
 	var minDist int
 	var result color.Color
 	for i, candidate := range haystack {
+		if candidate == nil {
+			continue
+		}
 		dist := distanceSquared(needle, candidate)
 		if i == 0 || dist < minDist {
 			minDist = dist
@@ -178,17 +181,21 @@ func nearest(needle color.Color, haystack []color.Color) color.Color {
 }
 
 // Find the item in the haystack to which the needle is closest.
-func nearestIndex(needle color.Color, haystack map[string]color.Color, threshold int) string {
+func nearestIndex(th int, needle color.Color, haystack map[string]color.Color) string {
+	// var minDist int
 	result := "none"
-	count := 0
-	minDist := threshold
+	// count := 0
+	minDist := th
 	for i, candidate := range haystack {
+		if candidate == nil {
+			continue
+		}
 		dist := distanceSquared(needle, candidate)
 		if dist < minDist {
 			minDist = dist
 			result = i
 		}
-		count++
+		// count++
 	}
 	return result
 }
